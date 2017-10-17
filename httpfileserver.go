@@ -7,14 +7,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
-var fileDir string = "~/tmp/"
+var fileDir string = "/Users/steve/tmp/"
 
 type MyMux struct {
 }
@@ -40,9 +43,34 @@ func (p *MyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if r.URL.Path == "/download" && r.Method == "GET" {
 		download(w, r)
 		return
+	} else if r.URL.Path == "/list" && r.Method == "GET" {
+		getFileList(w, r)
+		return
 	}
 	http.NotFound(w, r)
 	return
+}
+
+func getFileList(w http.ResponseWriter, r *http.Request) {
+	type filer struct {
+		Filename   string    `json:"filename"`
+		FileSize   int64     `json:"file_size"`
+		ModifyTime time.Time `json:"modify_time"`
+	}
+	dirList, err := ioutil.ReadDir(fileDir)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+	fileList := make([]filer, len(dirList))
+	for i, file := range dirList {
+		fileList[i].Filename = file.Name()
+		fileList[i].ModifyTime = file.ModTime()
+		fileList[i].FileSize = file.Size()
+	}
+	ret, _ := json.Marshal(fileList)
+	fmt.Fprint(w, string(ret))
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
