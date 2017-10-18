@@ -125,6 +125,7 @@ func main() {
 	queryFilename := flag.String("q", "", "result of file transfer")
 	serverIP := flag.String("h", "", "refer server ip")
 	listFlag := flag.Bool("l", false, "list all files on server")
+	flag.Usage = usage
 
 	flag.Parse()
 
@@ -173,4 +174,13 @@ func main() {
 	} else {
 		flag.Usage()
 	}
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, `httpfileclient version: httpfileclient/2.0
+Usage: ./httpfileclient [-h server] [-u filename] [-d filename] [-q filename] [-l]
+
+Options:
+`)
+	flag.PrintDefaults()
 }
