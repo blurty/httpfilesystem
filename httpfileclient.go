@@ -99,34 +99,45 @@ func downloadFile(filename string, targetUrl string) (string, error) {
 	}
 }
 
+func getFileList(targetUrl string) (body []byte, err error) {
+	resp, err := http.Get(targetUrl)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	} else {
+		body, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return
+		} else {
+			return
+		}
+	}
+}
+
 // sample usage
 func main() {
-	cmd := `Usage:./httpfileclient -h 127.0.0.1 <pattern> <filename>
-		-h server ip
-		-u upload file
-		-d download file
-		-q result of file transfer`
-	uploadFilename := flag.String("u", "", "upload filename")
-	downloadFilename := flag.String("d", "", "download filename")
-	queryFilename := flag.String("q", "", "query filename")
-	serverIP := flag.String("h", "", "server ip")
+	uploadFilename := flag.String("u", "", "upload file to server")
+	downloadFilename := flag.String("d", "", "download file from server")
+	queryFilename := flag.String("q", "", "result of file transfer")
+	serverIP := flag.String("h", "", "refer server ip")
+	listFlag := flag.Bool("l", false, "list all files on server")
 
 	flag.Parse()
 
 	if *serverIP == "" {
 		fmt.Println("missing server ip")
-		fmt.Println(cmd)
-		return
-	}
-	if *uploadFilename == "" && *downloadFilename == "" && *queryFilename == "" {
-		fmt.Println("choose one of upload or download or query")
-		fmt.Println(cmd)
+		flag.Usage()
 		return
 	}
 
 	upload_url := "http://" + *serverIP + ":12345/upload"
 	query_url := "http://" + *serverIP + ":12345/query"
 	download_url := "http://" + *serverIP + ":12345/download"
+	list_url := "http://" + *serverIP + ":12345/list"
 
 	if *uploadFilename != "" {
 		result, err := postFile(*uploadFilename, upload_url)
@@ -152,5 +163,14 @@ func main() {
 			fmt.Println(result)
 		}
 		return
+	} else if *listFlag {
+		fileList, err := getFileList(list_url)
+		if err != nil {
+			fmt.Println("get file list failed")
+		} else {
+			fmt.Println(string(fileList))
+		}
+	} else {
+		flag.Usage()
 	}
 }
