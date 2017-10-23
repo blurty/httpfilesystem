@@ -17,12 +17,14 @@ go版本的http文件服务器与其客户端
     -> go build httpfileclient.go
     -> ./httpfileclient
     -> missing server ip
-    -> httpfileclient version: httpfileclient/1.1
-    -> Usage: ./httpfileclient [-h server] [-u filename] [-d filename] [-q filename] [-l]
+    -> httpfileclient version: httpfileclient/3.0
+    -> Usage: ./httpfileclient [-h server] [-u filename] [-d filename] [-q filename] [-dir filepath] [-l]
     ->
     -> Options:
     ->   -d string
-    ->     	download file from server
+    ->       download file from server
+    ->   -dir string
+    ->       dir of file
     ->   -h string
     ->     	refer server ip
     ->   -l	list all files on server
@@ -35,16 +37,24 @@ go版本的http文件服务器与其客户端
 
 **上传文件：**
 
-    -> ./httpfileclient -h 127.0.0.1 -u test.txt
+成功打印true，失败打印失败原因。
+
+    -> ./httpfileclient -h 127.0.0.1 -u test.txt -dir tmp
 
 **下载文件：**
 
-    -> ./httpfileclient -h 127.0.0.1 -d test.txt
+成功打印true，失败打印失败原因。
+
+    -> ./httpfileclient -h 127.0.0.1 -d test.txt -dir tmp
 
 **查询文件上传结果：**
+
+成功查询则打印服务器查询结果，失败打印失败原因。
 
     -> ./httpfileclient -h 127.0.0.1 -q test.txt
 
 **获取服务器上的文件列表：**
+
+成功则打印服务器上的文件列表，失败打印失败原因。
 
     -> ./httpfileclient -h 127.0.0.1 -l

@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -15,9 +16,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 )
 
-func postFile(filename string, targetUrl string) (string, error) {
+func postFile(filename, fileDir, targetUrl string) (string, error) {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
 
@@ -28,13 +30,14 @@ func postFile(filename string, targetUrl string) (string, error) {
 	}
 
 	//打开文件句柄操作
-	fh, err := os.Open(filename)
+	realFile := path.Join(fileDir, filename)
+	fh, err := os.Open(realFile)
 	if err != nil {
 		return "false", err
 	}
 	defer fh.Close()
 
-	//iocopy
+	//ioCopy
 	_, err = io.Copy(fileWriter, fh)
 	if err != nil {
 		return "false", err
@@ -72,14 +75,13 @@ func queryFileTransferProgress(filename string, queryUrl string) (string, error)
 	}
 
 	if resp.StatusCode != 200 {
-		fmt.Println("code:", resp.StatusCode)
-		return "false", nil
+		return fmt.Sprint("http status code:", resp.StatusCode), nil
 	} else {
 		return string(body), nil
 	}
 }
 
-func downloadFile(filename string, targetUrl string) (string, error) {
+func downloadFile(filename, fileDir, targetUrl string) (string, error) {
 	resp, err := http.Get(targetUrl + "?filename=" + filename)
 	if err != nil {
 		return "false", err
@@ -89,13 +91,14 @@ func downloadFile(filename string, targetUrl string) (string, error) {
 	if resp.StatusCode != 200 {
 		return "false", err
 	} else {
-		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+		realFile := path.Join(fileDir, filename)
+		f, err := os.OpenFile(realFile, os.O_RDWR|os.O_CREATE, 0666)
 		if err != nil {
 			return "false", err
 		}
 		defer f.Close()
 		io.Copy(f, resp.Body)
-		return filename + "download success", nil
+		return "true", nil
 	}
 }
 
@@ -107,6 +110,7 @@ func getFileList(targetUrl string) (body []byte, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
+		err = errors.New("http status code not 200")
 		return
 	} else {
 		body, err = ioutil.ReadAll(resp.Body)
@@ -123,6 +127,7 @@ func main() {
 	uploadFilename := flag.String("u", "", "upload file to server")
 	downloadFilename := flag.String("d", "", "download file from server")
 	queryFilename := flag.String("q", "", "result of file transfer")
+	fileDir := flag.String("dir", "", "dir of file")
 	serverIP := flag.String("h", "", "refer server ip")
 	listFlag := flag.Bool("l", false, "list all files on server")
 	flag.Usage = usage
@@ -141,7 +146,7 @@ func main() {
 	list_url := "http://" + *serverIP + ":12345/list"
 
 	if *uploadFilename != "" {
-		result, err := postFile(*uploadFilename, upload_url)
+		result, err := postFile(*uploadFilename, *fileDir, upload_url)
 		if err != nil {
 			fmt.Println(err)
 		} else {
@@ -149,7 +154,7 @@ func main() {
 		}
 		return
 	} else if *downloadFilename != "" {
-		result, err := downloadFile(*downloadFilename, download_url)
+		result, err := downloadFile(*downloadFilename, *fileDir, download_url)
 		if err != nil {
 			fmt.Println(err)
 		} else {
@@ -167,7 +172,7 @@ func main() {
 	} else if *listFlag {
 		fileList, err := getFileList(list_url)
 		if err != nil {
-			fmt.Println("get file list failed")
+			fmt.Println(err)
 		} else {
 			fmt.Println(string(fileList))
 		}
@@ -177,8 +182,8 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `httpfileclient version: httpfileclient/2.0
-Usage: ./httpfileclient [-h server] [-u filename] [-d filename] [-q filename] [-l]
+	fmt.Fprintf(os.Stderr, `httpfileclient version: httpfileclient/3.0
+Usage: ./httpfileclient [-h server] [-u filename] [-d filename] [-q filename] [-dir filepath] [-l]
 
 Options:
 `)
